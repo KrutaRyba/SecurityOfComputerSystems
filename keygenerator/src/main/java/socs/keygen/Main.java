@@ -38,7 +38,7 @@ public class Main {
         try {
             keyGen = new KeyGenerator(KeyPairGenerator.getInstance("RSA"), 4096);
             hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"));
-            cipher = new AESCipher(Cipher.getInstance("AES"));
+            cipher = new AESCipher(Cipher.getInstance("AES/ECB/PKCS5Padding"));
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             System.exit(0);
         }
@@ -121,7 +121,3 @@ public class Main {
         }
     }
 }
-
-/*
- * Image from https://uxwing.com/keys-icon/
- */

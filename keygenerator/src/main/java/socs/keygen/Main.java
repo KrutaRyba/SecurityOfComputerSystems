@@ -31,10 +31,15 @@ import javax.swing.text.PlainDocument;
 
 public class Main {
     private static KeyGenerator keyGen;
+    private static HashGenerator hashGen;
+    private static AESCipher cipher;
+
     public static void main(String[] args) {
         try {
             keyGen = new KeyGenerator(KeyPairGenerator.getInstance("RSA"), 4096);
-        } catch (NoSuchAlgorithmException e) {}
+            hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"));
+            cipher = new AESCipher(Cipher.getInstance("AES"));
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {}
 
         JFrame frame = new JFrame("RSA key generator");
         frame.setLayout(null);
@@ -81,21 +86,24 @@ public class Main {
 
     private static void buttonGenClicked(char[] pin, String directory, JFrame frame) {
         keyGen.generateKeyPair();
-        StringBuilder sb = new StringBuilder();
-        for (char c : pin) sb.append(c);
-        
         byte[] encryptedPrivateKey = {};
+        boolean successful = true;
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashPIN = digest.digest(sb.toString().getBytes(StandardCharsets.UTF_8));
-            SecretKey key = new SecretKeySpec(hashPIN, 0, hashPIN.length, "AES");
-            Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-            encryptedPrivateKey = cipher.doFinal(keyGen.getPrivateKey());
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-            e.printStackTrace();
+            SecretKey hashPIN = hashGen.getHashAsKey(String.valueOf(pin));
+            encryptedPrivateKey = cipher.encrypt(hashPIN, keyGen.getPrivateKey());
+        } catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            JOptionPane.showMessageDialog(frame, "Error while encrypting private key.", "Error", JOptionPane.ERROR_MESSAGE);
+            successful = false;
         }
-        
+        try {
+            FileOutputStream outputStream = new FileOutputStream(Paths.get(directory, "keyRaw.priv").toString());
+            outputStream.write(keyGen.getPrivateKey());
+            outputStream.flush();
+            outputStream.close();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
+            successful = false;
+        }
         try {
             FileOutputStream outputStream = new FileOutputStream(Paths.get(directory, "key.priv").toString());
             outputStream.write(encryptedPrivateKey);
@@ -103,6 +111,7 @@ public class Main {
             outputStream.close();
         } catch (IOException e) {
             JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
+            successful = false;
         }
         try {
             FileOutputStream outputStream = new FileOutputStream(Paths.get(directory, "key.pub").toString());
@@ -111,8 +120,8 @@ public class Main {
             outputStream.close();
         } catch (IOException e) {
             JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
+            successful = false;
         }
-
         /*
         try (FileWriter fileWriter = new FileWriter(Paths.get(directory, "privateKey.txt").toString())) {
             fileWriter.write(keyGen.getKeyHEX(encryptedPrivateKey));
@@ -123,7 +132,7 @@ public class Main {
             fileWriter.flush();
         }
         */
-        JOptionPane.showMessageDialog(frame,  "Saved to: " + directory);
+        if (successful) JOptionPane.showMessageDialog(frame,  "Saved to: " + directory);
     }
 
     private static void buttonSaveClicked(JFrame frame, JTextField fieldDir) {

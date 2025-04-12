@@ -2,6 +2,7 @@ package socs.keygen;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.util.Base64;
 
 public class KeyGenerator {
     private KeyPairGenerator generator;
@@ -24,5 +25,8 @@ public class KeyGenerator {
         StringBuilder stringBuilder = new StringBuilder();
         for(byte b: key) stringBuilder.append(String.format("%02x", b));
         return stringBuilder.toString();
+    }
+    public String getKeyBase64(byte[] key) {
+        return Base64.getEncoder().encodeToString(key);
     }
 }

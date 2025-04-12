@@ -1,8 +1,6 @@
 package socs.keygen;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.KeyPairGenerator;
@@ -14,8 +12,8 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -33,17 +31,23 @@ public class Main {
     private static KeyGenerator keyGen;
     private static HashGenerator hashGen;
     private static AESCipher cipher;
+    private static FileSaver fileSaver;
 
     public static void main(String[] args) {
+        fileSaver = new FileSaver();
         try {
             keyGen = new KeyGenerator(KeyPairGenerator.getInstance("RSA"), 4096);
             hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"));
             cipher = new AESCipher(Cipher.getInstance("AES"));
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {}
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            System.exit(0);
+        }
 
         JFrame frame = new JFrame("RSA key generator");
+        frame.setIconImage(new ImageIcon("keygenerator\\src\\main\\resources\\keys-icon.png").getImage());
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
-        frame.setSize(400, 300);
+        frame.setSize(400, 180);
 
         JPanel panelPIN = new JPanel();
         panelPIN.setLayout(new BoxLayout(panelPIN, BoxLayout.X_AXIS));
@@ -78,6 +82,7 @@ public class Main {
         JButton buttonGen = new JButton("Generate");
         buttonGen.addActionListener(e -> buttonGenClicked(fieldPIN.getPassword(), fieldDir.getText(), frame));
         panelButton.add(buttonGen);
+
         frame.add(panelPIN);
         frame.add(panelFile);
         frame.add(panelButton);
@@ -87,51 +92,22 @@ public class Main {
     private static void buttonGenClicked(char[] pin, String directory, JFrame frame) {
         keyGen.generateKeyPair();
         byte[] encryptedPrivateKey = {};
-        boolean successful = true;
         try {
             SecretKey hashPIN = hashGen.getHashAsKey(String.valueOf(pin));
             encryptedPrivateKey = cipher.encrypt(hashPIN, keyGen.getPrivateKey());
         } catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
             JOptionPane.showMessageDialog(frame, "Error while encrypting private key.", "Error", JOptionPane.ERROR_MESSAGE);
-            successful = false;
+            return;
         }
+        boolean successful = true;
         try {
-            FileOutputStream outputStream = new FileOutputStream(Paths.get(directory, "keyRaw.priv").toString());
-            outputStream.write(keyGen.getPrivateKey());
-            outputStream.flush();
-            outputStream.close();
+            fileSaver.save(directory, "keyRaw.priv", keyGen.getPrivateKey());
+            fileSaver.save(directory, "key.priv", encryptedPrivateKey);
+            fileSaver.save(directory, "key.pub", keyGen.getPublicKey());
         } catch (IOException e) {
             JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
             successful = false;
         }
-        try {
-            FileOutputStream outputStream = new FileOutputStream(Paths.get(directory, "key.priv").toString());
-            outputStream.write(encryptedPrivateKey);
-            outputStream.flush();
-            outputStream.close();
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
-            successful = false;
-        }
-        try {
-            FileOutputStream outputStream = new FileOutputStream(Paths.get(directory, "key.pub").toString());
-            outputStream.write(keyGen.getPublicKey());
-            outputStream.flush();
-            outputStream.close();
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
-            successful = false;
-        }
-        /*
-        try (FileWriter fileWriter = new FileWriter(Paths.get(directory, "privateKey.txt").toString())) {
-            fileWriter.write(keyGen.getKeyHEX(encryptedPrivateKey));
-            fileWriter.flush();
-        }
-        try (FileWriter fileWriter = new FileWriter(Paths.get(directory, "publicKey.txt").toString())) {
-            fileWriter.write(keyGen.getKeyHEX(keyGen.getPublicKey()));
-            fileWriter.flush();
-        }
-        */
         if (successful) JOptionPane.showMessageDialog(frame,  "Saved to: " + directory);
     }
 
@@ -145,3 +121,7 @@ public class Main {
         }
     }
 }
+
+/*
+ * Image from https://uxwing.com/keys-icon/
+ */

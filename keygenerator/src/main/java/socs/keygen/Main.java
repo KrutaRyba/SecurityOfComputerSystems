@@ -44,7 +44,7 @@ public class Main {
         }
 
         JFrame frame = new JFrame("RSA key generator");
-        frame.setIconImage(new ImageIcon("keygenerator\\src\\main\\resources\\keys-icon.png").getImage());
+        frame.setIconImage(new ImageIcon(Main.class.getClassLoader().getResource("keys-icon.png")).getImage());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
         frame.setSize(400, 180);

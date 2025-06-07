@@ -2,7 +2,9 @@ package socs.keygen;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -12,9 +14,11 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -30,16 +34,14 @@ import javax.swing.text.PlainDocument;
 public class Main {
     private static KeyGenerator keyGen;
     private static HashGenerator hashGen;
-    private static AESCipher cipher;
     private static FileSaver fileSaver;
 
     public static void main(String[] args) {
         fileSaver = new FileSaver();
         try {
             keyGen = new KeyGenerator(KeyPairGenerator.getInstance("RSA"), 4096);
-            hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"));
-            cipher = new AESCipher(Cipher.getInstance("AES/ECB/PKCS5Padding"));
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"), "AES");
+        } catch (NoSuchAlgorithmException e) {
             System.exit(0);
         }
 
@@ -67,12 +69,22 @@ public class Main {
         panelPIN.add(labelPIN);
         panelPIN.add(fieldPIN);
 
+        JPanel panelMode = new JPanel();
+        panelMode.setLayout(new BoxLayout(panelMode, BoxLayout.X_AXIS));
+        panelMode.setBounds(20, 40, 150, 20);
+        JLabel labelMode = new JLabel("Select Mode:");
+        String[] modes = { "ECB", "CBC" };
+        JComboBox<String> comboBoxMode = new JComboBox<>(modes);
+        comboBoxMode.setSelectedItem(0);
+        panelMode.add(labelMode);
+        panelMode.add(comboBoxMode);
+
         JPanel panelFile = new JPanel();
         panelFile.setLayout(new BoxLayout(panelFile, BoxLayout.X_AXIS));
         panelFile.setBounds(20, 60, 340, 20);
         JTextField fieldDir = new JTextField(Paths.get(".").toAbsolutePath().normalize().toString());
         JButton buttonSave = new JButton("Folder");
-        buttonSave.addActionListener(e -> buttonSaveClicked(frame, fieldDir));
+        buttonSave.addActionListener(_ -> buttonSaveClicked(frame, fieldDir));
         panelFile.add(fieldDir);
         panelFile.add(buttonSave);
 
@@ -80,30 +92,36 @@ public class Main {
         panelButton.setLayout(new BoxLayout(panelButton, BoxLayout.X_AXIS));
         panelButton.setBounds(20, 100, 150, 20);
         JButton buttonGen = new JButton("Generate");
-        buttonGen.addActionListener(e -> buttonGenClicked(fieldPIN.getPassword(), fieldDir.getText(), frame));
+        buttonGen.addActionListener(_ -> buttonGenClicked(fieldPIN.getPassword(), fieldDir.getText(), frame, comboBoxMode));
         panelButton.add(buttonGen);
 
         frame.add(panelPIN);
+        frame.add(panelMode);
         frame.add(panelFile);
         frame.add(panelButton);
         frame.setVisible(true);
     }
 
-    private static void buttonGenClicked(char[] pin, String directory, JFrame frame) {
-        keyGen.generateKeyPair();
-        byte[] encryptedPrivateKey = {};
+    private static void buttonGenClicked(char[] pin, String directory, JFrame frame, JComboBox<String> comboBox) {
+        KeyPair keys = keyGen.generateKeyPair();
+        byte[] encryptedPrivateKey = {}, iVector = {};
+        String mode = (String) comboBox.getSelectedItem();
         try {
             SecretKey hashPIN = hashGen.getHashAsKey(String.valueOf(pin));
-            encryptedPrivateKey = cipher.encrypt(hashPIN, keyGen.getPrivateKey());
-        } catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            AESCipher cipher = new AESCipher(Cipher.getInstance("AES/" + mode + "/PKCS5Padding"));
+            IvParameterSpec iv = cipher.generateIV();
+            encryptedPrivateKey = cipher.encrypt(hashPIN, keys.getPrivate().getEncoded(), iv);
+            iVector = iv.getIV();
+        } catch (InvalidKeyException | IllegalBlockSizeException | BadPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | NoSuchPaddingException e) {
             JOptionPane.showMessageDialog(frame, "Error while encrypting private key.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         boolean successful = true;
         try {
-            fileSaver.save(directory, "keyRaw.priv", keyGen.getPrivateKey());
+            fileSaver.save(directory, "keyRaw.priv", keys.getPrivate().getEncoded());
             fileSaver.save(directory, "key.priv", encryptedPrivateKey);
-            fileSaver.save(directory, "key.pub", keyGen.getPublicKey());
+            fileSaver.save(directory, "key.pub", keys.getPublic().getEncoded());
+            if (!mode.equals("ECB")) fileSaver.save(directory, "vector.iv", iVector);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(frame, "Error while writing to file.", "Error", JOptionPane.ERROR_MESSAGE);
             successful = false;
@@ -116,7 +134,6 @@ public class Main {
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         if (fileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
             String dir = fileChooser.getSelectedFile().toString();
-            System.out.println(dir);
             fieldDir.setText(dir);   
         }
     }

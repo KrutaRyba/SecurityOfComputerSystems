@@ -6,20 +6,13 @@ import java.util.Base64;
 
 public class KeyGenerator {
     private KeyPairGenerator generator;
-    private KeyPair keys;
 
     public KeyGenerator(KeyPairGenerator gen, int keySize) {
         generator = gen;
         generator.initialize(keySize);
     }
-    public void generateKeyPair() {
-        keys = generator.generateKeyPair();
-    }
-    public byte[] getPrivateKey() {
-        return keys.getPrivate().getEncoded();
-    }
-    public byte[] getPublicKey() {
-        return keys.getPublic().getEncoded();
+    public KeyPair generateKeyPair() {
+        return generator.generateKeyPair();
     }
     public String getKeyHEX(byte[] key) {
         StringBuilder stringBuilder = new StringBuilder();

@@ -26,7 +26,8 @@ public class WindowsUSBDetector implements Runnable {
                 newUSBPath = devicePath;
                 eventHandler.fireEvent(USBEventTypes.DEVICE, newUSBPath);
                 for (File file: devices[i].listFiles()) {
-                    if (FilenameUtils.getExtension(file.getName()).equals("priv")) eventHandler.fireEvent(USBEventTypes.FILE, file.getAbsolutePath());
+                    if (FilenameUtils.getExtension(file.getName()).equals("priv")) eventHandler.fireEvent(USBEventTypes.FILEPRIV, file.getAbsolutePath());
+                    else if (FilenameUtils.getExtension(file.getName()).equals("pub")) eventHandler.fireEvent(USBEventTypes.FILEPUB, file.getAbsolutePath());
                 }
             }
         }
@@ -40,7 +41,8 @@ public class WindowsUSBDetector implements Runnable {
                         newUSBPath = devicePath;
                         eventHandler.fireEvent(USBEventTypes.DEVICE, newUSBPath);
                         for (File file: newDevices[i].listFiles()) {
-                            if (FilenameUtils.getExtension(file.getName()).equals("priv")) eventHandler.fireEvent(USBEventTypes.FILE, file.getAbsolutePath());
+                            if (FilenameUtils.getExtension(file.getName()).equals("priv")) eventHandler.fireEvent(USBEventTypes.FILEPRIV, file.getAbsolutePath());
+                            else if (FilenameUtils.getExtension(file.getName()).equals("pub")) eventHandler.fireEvent(USBEventTypes.FILEPUB, file.getAbsolutePath());
                         }
                     }
                 }

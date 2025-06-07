@@ -4,7 +4,7 @@ import java.util.EventObject;
 
 public class USBEvent extends EventObject { 
     public static enum USBEventTypes {
-        DEVICE, FILE
+        DEVICE, FILEPUB, FILEPRIV,
     };
     private String path;
     private USBEventTypes eventType;

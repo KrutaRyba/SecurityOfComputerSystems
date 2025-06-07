@@ -31,16 +31,26 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
 
+/**
+ * Main class.
+*/
 public class Main {
+    /** Specific KeyGenerator */
     private static KeyGenerator keyGen;
+    /** Specific HashGenerator */
     private static HashGenerator hashGen;
+    /** Specific FileSaver */
     private static FileSaver fileSaver;
 
+    /**
+     * Entrypoint of application. Function responsible for dependency injection, creating UI.
+     * @param[in] args Command line arguments (not used)
+     */
     public static void main(String[] args) {
         fileSaver = new FileSaver();
         try {
             keyGen = new KeyGenerator(KeyPairGenerator.getInstance("RSA"), 4096);
-            hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"), "AES");
+            hashGen = new HashGenerator(MessageDigest.getInstance("SHA-256"));
         } catch (NoSuchAlgorithmException e) {
             System.exit(0);
         }
@@ -49,12 +59,12 @@ public class Main {
         frame.setIconImage(new ImageIcon(Main.class.getClassLoader().getResource("keys-icon.png")).getImage());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(null);
-        frame.setSize(400, 180);
+        frame.setSize(400, 220);
 
         JPanel panelPIN = new JPanel();
         panelPIN.setLayout(new BoxLayout(panelPIN, BoxLayout.X_AXIS));
         panelPIN.setBounds(20, 20, 150, 20);
-        JLabel labelPIN = new JLabel("Enter PIN:");
+        JLabel labelPIN = new JLabel("Enter PIN: ");
         JPasswordField fieldPIN = new JPasswordField();
         PlainDocument document = (PlainDocument) fieldPIN.getDocument();
         document.setDocumentFilter(new DocumentFilter() {
@@ -71,8 +81,8 @@ public class Main {
 
         JPanel panelMode = new JPanel();
         panelMode.setLayout(new BoxLayout(panelMode, BoxLayout.X_AXIS));
-        panelMode.setBounds(20, 40, 150, 20);
-        JLabel labelMode = new JLabel("Select Mode:");
+        panelMode.setBounds(20, 60, 150, 20);
+        JLabel labelMode = new JLabel("Select Mode: ");
         String[] modes = { "ECB", "CBC" };
         JComboBox<String> comboBoxMode = new JComboBox<>(modes);
         comboBoxMode.setSelectedItem(0);
@@ -81,7 +91,7 @@ public class Main {
 
         JPanel panelFile = new JPanel();
         panelFile.setLayout(new BoxLayout(panelFile, BoxLayout.X_AXIS));
-        panelFile.setBounds(20, 60, 340, 20);
+        panelFile.setBounds(20, 100, 340, 20);
         JTextField fieldDir = new JTextField(Paths.get(".").toAbsolutePath().normalize().toString());
         JButton buttonSave = new JButton("Folder");
         buttonSave.addActionListener(_ -> buttonSaveClicked(frame, fieldDir));
@@ -90,7 +100,7 @@ public class Main {
 
         JPanel panelButton = new JPanel();
         panelButton.setLayout(new BoxLayout(panelButton, BoxLayout.X_AXIS));
-        panelButton.setBounds(20, 100, 150, 20);
+        panelButton.setBounds(20, 140, 150, 20);
         JButton buttonGen = new JButton("Generate");
         buttonGen.addActionListener(_ -> buttonGenClicked(fieldPIN.getPassword(), fieldDir.getText(), frame, comboBoxMode));
         panelButton.add(buttonGen);
@@ -102,12 +112,19 @@ public class Main {
         frame.setVisible(true);
     }
 
+    /**
+     * Button clicked action for Generate button.
+     * @param[in] pin PIN code for encrypting private key
+     * @param[in] directory Directory where keys and IV will be saved
+     * @param[in] frame Parent JFrame for displaying error and informational messages
+     * @param[in] comboBox JComboBox that is used for extracting enryption mode
+     */
     private static void buttonGenClicked(char[] pin, String directory, JFrame frame, JComboBox<String> comboBox) {
         KeyPair keys = keyGen.generateKeyPair();
         byte[] encryptedPrivateKey = {}, iVector = {};
         String mode = (String) comboBox.getSelectedItem();
         try {
-            SecretKey hashPIN = hashGen.getHashAsKey(String.valueOf(pin));
+            SecretKey hashPIN = hashGen.getHashAsKey(String.valueOf(pin), "AES");
             AESCipher cipher = new AESCipher(Cipher.getInstance("AES/" + mode + "/PKCS5Padding"));
             IvParameterSpec iv = cipher.generateIV();
             encryptedPrivateKey = cipher.encrypt(hashPIN, keys.getPrivate().getEncoded(), iv);
@@ -129,6 +146,11 @@ public class Main {
         if (successful) JOptionPane.showMessageDialog(frame,  "Saved to: " + directory);
     }
 
+    /**
+     * Button clicked action for Folder button.
+     * @param[in] frame Parent JFrame for displaying file chooser
+     * @param[in] fieldDir JTextField where path to directory will be displayed
+     */
     private static void buttonSaveClicked(JFrame frame, JTextField fieldDir) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);

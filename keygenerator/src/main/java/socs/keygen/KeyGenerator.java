@@ -13,8 +13,8 @@ public class KeyGenerator {
 
     /**
      * Constructor with dependency injection.
-     * @param[in] generator Instance of KeyPairGenerator
-     * @param[in] keySize Size of keys
+     * @param generator Instance of KeyPairGenerator
+     * @param keySize Size of keys
      * @return Instance of KeyGenerator
      */
     public KeyGenerator(KeyPairGenerator generator, int keySize) {
@@ -30,7 +30,7 @@ public class KeyGenerator {
     }
     /**
      * Function that formats key to HEX.
-     * @param[in] key Key to format in bytes
+     * @param key Key to format in bytes
      * @return Key in HEX format
      */
     public String getKeyHEX(byte[] key) {
@@ -40,7 +40,7 @@ public class KeyGenerator {
     }
     /**
      * Function that formats key to Base64.
-     * @param[in] key Key to format in bytes
+     * @param key Key to format in bytes
      * @return Key in Base64 format
      */
     public String getKeyBase64(byte[] key) {

@@ -15,7 +15,7 @@ public class HashGenerator {
 
     /**
      * Constructor with dependency injection.
-     * @param[in] digest Instance of MessageDigest
+     * @param digest Instance of MessageDigest
      * @return Instance of HashGenerator
      */
     public HashGenerator(MessageDigest digest) {
@@ -23,7 +23,7 @@ public class HashGenerator {
     }
     /**
      * Function that creates hash from given message.
-     * @param[in] message Message to hash
+     * @param message Message to hash
      * @return Hashed message in bytes
      */
     public byte[] getHash(String message) {
@@ -31,8 +31,8 @@ public class HashGenerator {
     }
     /**
      * Function that constructs key from message specific for provided algorithm.
-     * @param[in] message Message to hash
-     * @param[in] algorithm Algorithm for constructing key from hash
+     * @param message Message to hash
+     * @param algorithm Algorithm for constructing key from hash
      * @return Key constructed from hashed message
      */
     public SecretKey getHashAsKey(String message, String algorithm) {

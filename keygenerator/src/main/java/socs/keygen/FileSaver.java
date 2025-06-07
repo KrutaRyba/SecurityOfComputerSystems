@@ -10,9 +10,9 @@ import java.nio.file.Paths;
 public class FileSaver {
     /**
      * Function that saves array of bytes under given name and to given directory. If file with the same name exists, it is overwritten.
-     * @param[in] directory Directory to save file in
-     * @param[in] fileName Name of file
-     * @param[in] content Content of file in bytes
+     * @param directory Directory to save file in
+     * @param fileName Name of file
+     * @param content Content of file in bytes
      * @throws IOException Directory does not exist
      */
     public void save(String directory, String fileName, byte[] content) throws IOException {

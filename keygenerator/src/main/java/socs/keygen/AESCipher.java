@@ -20,7 +20,7 @@ public class AESCipher {
 
     /**
      * Constructor with dependency injection.
-     * @param[in] cipher Instance of Cipher
+     * @param cipher Instance of Cipher
      * @return Instance of AESCipher
     */
     public AESCipher(Cipher cipher) {
@@ -29,9 +29,9 @@ public class AESCipher {
 
     /**
      * Function that encrypts given message using provided key and IV (in case of mode other than ECB).
-     * @param[in] key Key for used for encryption
-     * @param[in] message Message to encrypt
-     * @param[in] iv Initialization vector (can be null if encryption mode is ECB)
+     * @param key Key for used for encryption
+     * @param message Message to encrypt
+     * @param iv Initialization vector (can be null if encryption mode is ECB)
      * @return Encrypted message in bytes
      * @throws InvalidKeyException Key is ivalid
      * @throws IllegalBlockSizeException Length of data does not match the block size of the cipher
@@ -46,9 +46,9 @@ public class AESCipher {
     }
     /**
      * Function that decrypts given message using provided key and IV (in case of mode other than ECB).
-     * @param[in] key Key for used for decryption
-     * @param[in] message Message to decrypt
-     * @param[in] iv Initialization vector (can be null if encryption mode is ECB)
+     * @param key Key for used for decryption
+     * @param message Message to decrypt
+     * @param iv Initialization vector (can be null if encryption mode is ECB)
      * @return Decrypted message in bytes
      * @throws InvalidKeyException Key is ivalid
      * @throws IllegalBlockSizeException Length of data does not match the block size of the cipher

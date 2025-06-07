@@ -44,7 +44,7 @@ public class Main {
 
     /**
      * Entrypoint of application. Function responsible for dependency injection, creating UI.
-     * @param[in] args Command line arguments (not used)
+     * @param args Command line arguments (not used)
      */
     public static void main(String[] args) {
         fileSaver = new FileSaver();
@@ -114,10 +114,10 @@ public class Main {
 
     /**
      * Button clicked action for Generate button.
-     * @param[in] pin PIN code for encrypting private key
-     * @param[in] directory Directory where keys and IV will be saved
-     * @param[in] frame Parent JFrame for displaying error and informational messages
-     * @param[in] comboBox JComboBox that is used for extracting enryption mode
+     * @param pin PIN code for encrypting private key
+     * @param directory Directory where keys and IV will be saved
+     * @param frame Parent JFrame for displaying error and informational messages
+     * @param comboBox JComboBox that is used for extracting enryption mode
      */
     private static void buttonGenClicked(char[] pin, String directory, JFrame frame, JComboBox<String> comboBox) {
         KeyPair keys = keyGen.generateKeyPair();
@@ -148,8 +148,8 @@ public class Main {
 
     /**
      * Button clicked action for Folder button.
-     * @param[in] frame Parent JFrame for displaying file chooser
-     * @param[in] fieldDir JTextField where path to directory will be displayed
+     * @param frame Parent JFrame for displaying file chooser
+     * @param fieldDir JTextField where path to directory will be displayed
      */
     private static void buttonSaveClicked(JFrame frame, JTextField fieldDir) {
         JFileChooser fileChooser = new JFileChooser();

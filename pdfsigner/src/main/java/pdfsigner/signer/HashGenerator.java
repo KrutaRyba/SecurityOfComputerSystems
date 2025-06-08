@@ -8,7 +8,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class HashGenerator {
     private  MessageDigest digest;
-
+    
     public HashGenerator(MessageDigest digest) {
         this.digest = digest;
     }

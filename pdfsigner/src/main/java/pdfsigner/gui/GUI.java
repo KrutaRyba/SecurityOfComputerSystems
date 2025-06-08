@@ -7,8 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -23,20 +22,26 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import pdfsigner.signer.PDFSigner;
-import pdfsigner.usb.EventListener;
 import pdfsigner.usb.USBEvent;
 import pdfsigner.usb.USBEventHandler;
+import pdfsigner.usb.USBEventListener;
 import pdfsigner.usb.WindowsUSBDetector;
 import pdfsigner.usb.USBEvent.USBEventTypes;
 
+
+/** Manages the graphical user interface of the application. */
 public class GUI extends JFrame {
+
+    /** Indices of the menu items in the menu bar. */
     private enum MenuBarIndices {
-        FILE (0), SIGNATURE(1), OPEN(0), CLOSE(1), SIGN(0), CHECK(1);
+        FILE (0), SIGNATURE(1), OPEN(0), CLOSE(1), SIGN(0), VERIFY(1);
         private final int index;   
         MenuBarIndices(int index) {
             this.index = index;
@@ -45,21 +50,26 @@ public class GUI extends JFrame {
             return index; 
         }
     };
+
     private File document;
     private File pubKeyFile;
     private File privKeyFile;
     private String password;
     private boolean toSaveCert;
+    private String defaultFileLabelText = "Open file";
+    private String defaultUSBLabelText = "Insert USB drive";
     private JDialog signingDialog;
     private JMenuBar menuBar;
     private JLabel fileLabel;
     private JLabel usbLabel;
     private JTextArea outputLabel;
     private JPasswordField passwordField;
-    private JCheckBox saveCertCB;
-    private JButton confirmSignButton;
-    private String defaultFileLabelText = "Open file";
-    private String defaultUSBLabelText = "Insert USB drive";
+
+    /**
+     * Creates the <code>GUI</code> object.
+     * @param widht With of the window
+     * @param height Height of the window
+     */
     public GUI(int widht, int height) {
         // Main window
         super("PDF Signer");
@@ -71,55 +81,31 @@ public class GUI extends JFrame {
         this.privKeyFile = null;
         this.pubKeyFile = null;
         this.toSaveCert = false;
-        this.fileLabel = new JLabel(this.defaultFileLabelText);
-        this.usbLabel = new JLabel(this.defaultUSBLabelText);
+        // Text area
         this.outputLabel = new JTextArea();
         this.outputLabel.setEditable(false);
         this.outputLabel.setBorder(new BevelBorder(BevelBorder.LOWERED));
-        this.getContentPane().add(outputLabel, BorderLayout.CENTER);
-        // Signing dialog
-        this.signingDialog = new JDialog(this, "Signing");
-        this.signingDialog.setSize(200, 200);
-        this.confirmSignButton = new JButton("Sign");
-        this.confirmSignButton.addActionListener(new ConfirmSignButtonListener());
-        this.signingDialog.add(confirmSignButton, BorderLayout.SOUTH);
-        this.passwordField = new JPasswordField();
-        this.saveCertCB = new JCheckBox("Save certificate");
-        this.saveCertCB.addActionListener(new SaveCertCBListener());
-        JPanel panel = new JPanel();
-        panel.setLayout(new GridBagLayout());
-        this.signingDialog.add(panel);
-        GridBagConstraints left = new GridBagConstraints();
-        left.anchor = GridBagConstraints.EAST;
-        GridBagConstraints right = new GridBagConstraints();
-        right.weightx = 2.0;
-        right.fill = GridBagConstraints.HORIZONTAL;
-        right.gridwidth = GridBagConstraints.REMAINDER;
-        panel.add(new JLabel("Password: "), left);
-        panel.add(this.passwordField, right);
-        panel.add(this.saveCertCB , right);
-        this.signingDialog.pack();
-        this.signingDialog.setVisible(false);
+        this.outputLabel.setLineWrap(true);
+        JScrollPane scrollPane = new JScrollPane(this.outputLabel);
+        this.getContentPane().add(scrollPane, BorderLayout.CENTER);
         // Menu bar
-        this.menuBar = createMenuBar();
-        this.decorator(this.menuBar);
-        this.setJMenuBar(this.menuBar);
+        createMenuBar();
         // Status bar
-        JPanel statusBar = new JPanel();
-        statusBar.setLayout(new BorderLayout());
-        this.decorator(statusBar);
-        statusBar.add(fileLabel, BorderLayout.WEST);
-        statusBar.add(usbLabel, BorderLayout.EAST);
-        statusBar.setBorder(new EmptyBorder(2, 2, 2, 2));
-        this.getContentPane().add(statusBar, BorderLayout.SOUTH);
+        this.createStatusBar();
+        // Signing dialog
+        this.createDialog();
         // Other
         this.setVisible(true);
         return;
     }
+
+    /** Creates the default <code>GUI</code> object. */
     public GUI() {
         this(500, 500);
         return;
     }
+
+    /** Starts listening for the USB events. */
     public void start() {
         USBEventHandler usbEventHandler = new USBEventHandler();
         usbEventHandler.addListener(new USBListener());
@@ -127,9 +113,11 @@ public class GUI extends JFrame {
         usbDetector.start();
         return;
     }
-    private JMenuBar createMenuBar() {
+
+    /** Creates menu bar */
+    private void createMenuBar() {
         // Initializing
-        JMenuBar menuBar = new JMenuBar();
+        this.menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenuItem openItem = new JMenuItem("Open");
         JMenuItem closeItem = new JMenuItem("Close");
@@ -145,56 +133,131 @@ public class GUI extends JFrame {
         // Initializing
         JMenu signatureMenu = new JMenu("Signature");
         JMenuItem signItem = new JMenuItem("Sign");
-        JMenuItem checkItem = new JMenuItem("Check");
+        JMenuItem verifyItem = new JMenuItem("Verify");
         // Assigning actions
         signItem.addActionListener(new SignItemListener());
-        checkItem.addActionListener(new CheckItemListener());
+        verifyItem.addActionListener(new VerifyItemListener());
         // Disabling
         signatureMenu.setEnabled(false);
         // Adding
         signatureMenu.add(signItem);
-        signatureMenu.add(checkItem);
+        signatureMenu.add(verifyItem);
         menuBar.add(signatureMenu);
-        return menuBar;
+        this.decorator(this.menuBar);
+        this.setJMenuBar(this.menuBar);
+        return;
     }
+
+    /** Creates signing dialog. */
+    private void createDialog() {
+        this.signingDialog = new JDialog(this, "Signing");
+        this.signingDialog.setSize(200, 200);
+        JButton confirmSignButton = new JButton("Sign");
+        confirmSignButton.addActionListener(new ConfirmSignButtonListener());
+        this.signingDialog.add(confirmSignButton, BorderLayout.SOUTH);
+        this.passwordField = new JPasswordField();
+        JCheckBox saveCertCB = new JCheckBox("Save certificate");
+        saveCertCB.addActionListener(new SaveCertCBListener());
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridBagLayout());
+        this.signingDialog.add(panel);
+        GridBagConstraints left = new GridBagConstraints();
+        left.anchor = GridBagConstraints.EAST;
+        GridBagConstraints right = new GridBagConstraints();
+        right.weightx = 2.0;
+        right.fill = GridBagConstraints.HORIZONTAL;
+        right.gridwidth = GridBagConstraints.REMAINDER;
+        panel.add(new JLabel("Password: "), left);
+        panel.add(this.passwordField, right);
+        panel.add(saveCertCB , right);
+        this.signingDialog.setVisible(false);
+        return;
+    }
+
+    /** Creates status bar. */
+    private void createStatusBar() {
+        JPanel statusBar = new JPanel();
+        statusBar.setLayout(new BorderLayout());
+        this.decorator(statusBar);
+        this.fileLabel = new JLabel(this.defaultFileLabelText);
+        this.usbLabel = new JLabel(this.defaultUSBLabelText);
+        statusBar.add(fileLabel, BorderLayout.WEST);
+        statusBar.add(usbLabel, BorderLayout.EAST);
+        statusBar.setBorder(new EmptyBorder(2, 2, 2, 2));
+        this.getContentPane().add(statusBar, BorderLayout.SOUTH);
+        return;
+    }
+
+    /**
+     * Decorates the component.
+     * <p>
+     * Sets opacity to 0%, background to <code>LIGHT_GRAY</code> and border to empty border with 0 paddings.
+     * @param component Component
+     */
     private void decorator(JComponent component) {
         component.setOpaque(true);
         component.setBackground(Color.LIGHT_GRAY);
         component.setBorder(new EmptyBorder(0, 0, 0, 0));
         return;
     }
+
+    /**
+     * Gets the submenu from the menu bar.
+     * @param menuIndex Index of the submenu from {@link pdfsigner.gui.GUI#MenuBarIndices}
+     * @return Submenu component
+     */
     private Component getMenu(MenuBarIndices menuIndex) {
         return this.menuBar.getSubElements()[menuIndex.index()].getComponent();
     }
+
+    /**
+     * Gets item from the submenu.
+     * @param menuIndex Index of the submenu
+     * @param itemIndex Index of the item
+     * @return Item component
+     */
     private Component getMenuItem(MenuBarIndices menuIndex, MenuBarIndices itemIndex) {
         return this.menuBar.getSubElements()[menuIndex.index()].getSubElements()[0].getSubElements()[itemIndex.index()].getComponent();
     }
+
+    /**
+     * Adds text to the output window.
+     * @param string Text to add
+     */
+    private void addTextToOutput(String string) {
+        this.outputLabel.setText(this.outputLabel.getText() + string + "\n");
+    }
+    
     private class OpenItemListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             JFileChooser fileChooser = new JFileChooser(System.getProperty("user.home") + System.getProperty("file.separator") + "Documents");
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("PDF document", "pdf");
+            fileChooser.setFileFilter(filter);
             int chosenOption = fileChooser.showOpenDialog(null);
             if (chosenOption == JFileChooser.APPROVE_OPTION) {
                 document = fileChooser.getSelectedFile();
                 fileLabel.setText(document.getAbsolutePath());
                 getMenuItem(MenuBarIndices.FILE, MenuBarIndices.CLOSE).setEnabled(true);
                 getMenu(MenuBarIndices.SIGNATURE).setEnabled(true);
-                outputLabel.setText(outputLabel.getText() + "Opened file: " + fileLabel.getText() + "\n");
+                addTextToOutput("Opened file: " +  fileLabel.getText());
             }
             return;
         }
     }
+
     private class CloseItemListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             document = null;
+            addTextToOutput("Closed file: " +  fileLabel.getText());
             fileLabel.setText(defaultFileLabelText);
             getMenuItem(MenuBarIndices.FILE, MenuBarIndices.CLOSE).setEnabled(false);
             getMenu(MenuBarIndices.SIGNATURE).setEnabled(false);
-            outputLabel.setText(outputLabel.getText() + defaultFileLabelText + "\n");
             return;
         }
     }
+
     private class SignItemListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -216,6 +279,7 @@ public class GUI extends JFrame {
             return;
         }
     }
+
     private class SaveCertCBListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -223,7 +287,8 @@ public class GUI extends JFrame {
             return;
         }
     }
-    private class CheckItemListener implements ActionListener {
+
+    private class VerifyItemListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (usbLabel.getText() == defaultUSBLabelText) {
@@ -234,32 +299,38 @@ public class GUI extends JFrame {
                 JOptionPane.showMessageDialog(null, "Could't find the .pub file. Make sure that file is present on the USB drive", "No .pub file", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            outputLabel.setText(outputLabel.getText() + "Started checking the document...\n");
+            addTextToOutput("Started verifying the document...");
             try {
-                PDFSigner.checkSignature(document, pubKeyFile);
-            } catch (GeneralSecurityException | IOException e1) {
-                outputLabel.setText(outputLabel.getText() + "Couldn't finish cheking the document " + e1.getMessage() + "\n");
+                List<String> result = PDFSigner.verify(document, pubKeyFile);
+                String message = String.join("\n", result);
+                if (message.isEmpty()) message = "No signature in the document";
+                addTextToOutput(message);
+                addTextToOutput("Finished verifying the document");
+                JOptionPane.showMessageDialog(null, message, "Finished", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception e1) {
+                addTextToOutput("Couldn't finish verifying the document: " + e1.getMessage());
                 JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 e1.printStackTrace();
             }
             return;
         }
     }
+
     private class ConfirmSignButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (passwordField.getPassword().length < 4) {
-                outputLabel.setText(outputLabel.getText() + "Password is too short\n");
+                addTextToOutput("Password is too short");
                 JOptionPane.showMessageDialog(null, "Password is too short", "", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
             try {
                 password = new String(passwordField.getPassword());
                 String newPath = PDFSigner.sign(document, privKeyFile, pubKeyFile, password, toSaveCert).getAbsolutePath();
-                outputLabel.setText(outputLabel.getText() + "Finished signing the document: " + newPath + "\n");
+                addTextToOutput("Finished signing the document: " + newPath);
                 JOptionPane.showMessageDialog(null, "File saved under " + newPath, "Finished", JOptionPane.INFORMATION_MESSAGE);
-            } catch (GeneralSecurityException | IOException e1) {
-                outputLabel.setText(outputLabel.getText() + "Couldn't finish signing the document " + e1.getMessage() + "\n");
+            } catch (Exception e1) {
+                addTextToOutput("Couldn't finish signing the document: " + e1.getMessage());
                 JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 e1.printStackTrace();
             }
@@ -267,32 +338,34 @@ public class GUI extends JFrame {
             return;
         }
     }
-    private class USBListener implements EventListener {
+
+    private class USBListener implements USBEventListener {
         @Override
         public void handleEvent(USBEvent usbEvent) {
             if (usbEvent.getPath() != "" && usbEvent.getEventType() == USBEventTypes.DEVICE) {
                 usbLabel.setText(usbEvent.getPath());
-                outputLabel.setText(outputLabel.getText() + "Found USB drive " + usbEvent.getPath() + "\n");
+                addTextToOutput("Found USB drive: " + usbEvent.getPath());
             }
             else if (usbEvent.getEventType() == USBEventTypes.FILEPRIV) {
                 privKeyFile = new File(usbEvent.getPath());
                 if (pubKeyFile == null) usbLabel.setText(usbEvent.getPath());
                 else usbLabel.setText(usbLabel.getText() + ", " + usbEvent.getPath());
-                outputLabel.setText(outputLabel.getText() + "Found key file " + usbEvent.getPath() + "\n");
+                addTextToOutput("Found key file: " + usbEvent.getPath());
             }
             else if (usbEvent.getEventType() == USBEventTypes.FILEPUB) {
                 pubKeyFile = new File(usbEvent.getPath());
                 if (privKeyFile == null) usbLabel.setText(usbEvent.getPath());
                 else usbLabel.setText(usbLabel.getText() + ", " + usbEvent.getPath());
-                outputLabel.setText(outputLabel.getText() + "Found key file " + usbEvent.getPath() + "\n");
+                addTextToOutput("Found key file: " + usbEvent.getPath());
             }
             else {
                 usbLabel.setText(defaultUSBLabelText);
-                outputLabel.setText(outputLabel.getText() + defaultUSBLabelText + "\n" );
+                addTextToOutput(defaultUSBLabelText);
                 privKeyFile = null;
                 pubKeyFile = null;
             }
             return;
         }
     }
+
 }

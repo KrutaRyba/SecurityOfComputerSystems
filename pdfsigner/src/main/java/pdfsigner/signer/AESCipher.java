@@ -10,7 +10,7 @@ import javax.crypto.IllegalBlockSizeException;
 
 public class AESCipher {
     private Cipher cipher;
-
+    
     public AESCipher(Cipher cipher) {
         this.cipher = cipher;
     }

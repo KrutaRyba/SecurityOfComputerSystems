@@ -6,16 +6,30 @@ import org.apache.commons.io.FilenameUtils;
 
 import pdfsigner.usb.USBEvent.USBEventTypes;
 
-public class WindowsUSBDetector implements Runnable {
-    FileSystemView fileSystemView;
-    public volatile boolean stop;
-    USBEventHandler eventHandler;
+/** Detects USB events in Windows. */
+public class WindowsUSBDetector implements USBDetector {
+
+    /** Allows access to the file system information. */
+    private FileSystemView fileSystemView;
+
+    /** Allows to fire events. */
+    private USBEventHandler eventHandler;
+
+    /**
+     * Creates the <code>WindowsUSBDetector</code> object.
+     * @param eventHandler Reference to the event handler
+     */
     public WindowsUSBDetector(USBEventHandler eventHandler) {
         this.fileSystemView = FileSystemView.getFileSystemView();
-        this.stop = false;
         this.eventHandler = eventHandler;
         return;
     }
+
+    /** 
+     * Detects the USB events.
+     * <p>
+     * Detects insertion and ejection of the USB device. Finds *.priv files and *.pub files.
+     */
     @Override
     public void run() {
         File[] devices = File.listRoots();
@@ -31,7 +45,7 @@ public class WindowsUSBDetector implements Runnable {
                 }
             }
         }
-        while(!stop) {
+        while(!Thread.interrupted()) {
             File[] newDevices = File.listRoots();
             if (newDevices.length > devices.length) {
                 for (int i = devices.length; i < newDevices.length; i++) {
@@ -41,8 +55,9 @@ public class WindowsUSBDetector implements Runnable {
                         newUSBPath = devicePath;
                         eventHandler.fireEvent(USBEventTypes.DEVICE, newUSBPath);
                         for (File file: newDevices[i].listFiles()) {
-                            if (FilenameUtils.getExtension(file.getName()).equals("priv")) eventHandler.fireEvent(USBEventTypes.FILEPRIV, file.getAbsolutePath());
-                            else if (FilenameUtils.getExtension(file.getName()).equals("pub")) eventHandler.fireEvent(USBEventTypes.FILEPUB, file.getAbsolutePath());
+                            String fileExtension = FilenameUtils.getExtension(file.getName());
+                            if (fileExtension.equals("priv")) eventHandler.fireEvent(USBEventTypes.FILEPRIV, file.getAbsolutePath());
+                            else if (fileExtension.equals("pub")) eventHandler.fireEvent(USBEventTypes.FILEPUB, file.getAbsolutePath());
                         }
                     }
                 }
@@ -67,4 +82,5 @@ public class WindowsUSBDetector implements Runnable {
         }
         return;
     }
+
 }
